@@ -25,7 +25,7 @@ bibliography: references.bib
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # Code description
@@ -48,7 +48,7 @@ Finally, the major part of the code consists of creating models and comparing th
 
 ## Library
 
-```{r install_libraries, message = FALSE, warning = FALSE}
+```{r install_libraries, message = FALSE, warning = FALSE, include=FALSE}
 # If some of these libraries are already installed and you don't want to install
 # them back, please comment concerned lines in this block
 # install.packages("rstatix")
@@ -61,7 +61,7 @@ Finally, the major part of the code consists of creating models and comparing th
 # install.packages("randomForest")
 ```
 
-```{r library_loading, message=FALSE, warning=FALSE}
+```{r library_loading, message=FALSE, warning=FALSE, include = FALSE}
 # Load the useful libraries
 
 # For statistical tests 
@@ -390,7 +390,7 @@ We set a number of 100 iteration that will be common to all models. This number 
 The higher this number, the higher the prediction accuracy but there is a risk of over fitting the data (*i.e.* the model performs exceptionally well on the training data but fails to generalize well to unseen or new data) and increases the calculation time. Inversely, a low number of iteration per model will certainly reduce the accuracy of its prediction.
 
 ```{r}
-kNumberRun <- 100
+kNumberRun <- 1
 ```
 
 The performance of a model is assessed by the root mean square error, calculated as ; $$RMSE = \sqrt{\frac{1}{n} \sum^n (y_i - \hat{y}_i)^2}$$
@@ -415,7 +415,7 @@ We will compare a model with the estimate model 1 (`estimate1`), and a model wit
 
 In addition, we are going to compare the performances of each linear model on the entire data set (`entire`,) then on each session individually (`session1` and `session2`).
 
-```{r, warning = FALSE, include = FALSE}
+```{r, warning = FALSE, echo = FALSE}
 # Create data frame with the different linear models
 comparison.modlin <- data.frame(
   dummy = TestModel(
@@ -490,7 +490,7 @@ All models allow a reliable prediction because they are more precise than the du
 
 We are going to compare the models by estimate first.
 
-```{r, include = FALSE}
+```{r, echo = FALSE}
 comparison.modlin %>%
   filter(model != "dummy") %>%
   ggplot(aes(x = estimate, y = accuracy)) +
@@ -517,7 +517,7 @@ Using the `estimate.2` improve the accuracy of the model.
 
 We are going to compare the accuracy of the model with the entire data set vs. with separate data set for each session.
 
-```{r, include = FALSE}
+```{r, echo = FALSE}
 comparison.modlin %>%
   filter(estimate == 'estimate2') %>%
   ggplot(aes(x = dataset, y = accuracy)) +
@@ -552,7 +552,7 @@ summary(lm.session1)
 
 In our model, at least one of the predictor variables is significantly related to the MV, *F*(41, 288) = 76.75, *p* \< 0.0001.
 
-\<bold\> The section that follows was not made for the memory \</bold\>
+**The section that follows was not made for the memory**
 
 As we can see however, many coefficients aren't significant. Therefore, we can remove them from the model.
 
@@ -569,7 +569,7 @@ This way our model is simpler and we don't lose much prediction power despite ha
 
 Now, let's do the same for the session at 0,5 m/s.
 
-```{r}
+```{r, echo = FALSE}
 # Fit a model over the whole data set
 lm.session2 <- lm(estimate.2, data = session.2)
 # Display the model
@@ -585,7 +585,7 @@ summary(lm.session2.updated)
 
 This time we lost a lot of variance explanation by suppressing the values because we went from a R2 at 0.82 to a R2 at 0.65. Therefore, we will do the sorting in two steps : before we suppress all the pvalues inferior to 0.10, them we will make a final sorting with the pvalues \< 0.05.
 
-```{r}
+```{r, echo = FALSE}
 # First sort the values with p < 0.1
 lm.session2.updated.2steps <- SortPvalues(lm.session2, session.2, 0.1)
 # Then sort the values with p < 0.05
@@ -615,7 +615,7 @@ Therefore, we are going to try other models, if they are as precise or more prec
 
 First, we need to build a linear mixed model by taking into account set and ID as random effects. We make the assumption that intercept and slope can be modified by the subject who performs the squat, and the number of sets performed before.
 
-```{r}
+```{r, echo = FALSE}
 estimate.lmer <- as.formula(
   MV ~ 
     IMNF_VaMe + IMNF_ReFe + IMNF_VaLa + IMNF_GlMa + IMNF_ExLo + 
@@ -631,14 +631,14 @@ estimate.lmer <- as.formula(
 
 Now, let's fit it on the session 1
 
-```{r}
+```{r, echo = FALSE}
 mod.lmer.session1 <- lmer(formula = estimate.lmer, data = session.1) 
 summary(mod.lmer.session1)
 ```
 
 And for the session 2
 
-```{r}
+```{r, echo = FALSE}
 mod.lmer.session2 <- lmer(formula = estimate.lmer, data = session.2) 
 summary(mod.lmer.session2)
 ```
@@ -647,7 +647,7 @@ summary(mod.lmer.session2)
 
 Now that we have fitted the linear models (multiple regression and linear mixed models), we are going to visualize the coefficients. This way, it will be easier to interpret.
 
-```{r, include = FALSE}
+```{r, echo = FALSE}
 graph.coeff <- data.frame(as.data.frame(report(lm.session1)))[2:26,c(1,2,4,5,8)]
 graph.coeff$model <- "RLM"
 graph.coeff$session <- "Session 0,8 m/s"
@@ -716,7 +716,7 @@ Regression tree partitions recursively the input data into subsets based on the 
 
 First, we will compare the accuracy of the tree's prediction with the estimate model 1 (`estimate1`) vs. with the estimate model 2 (`estimate2`). Then, we are going to compare the performances of each linear model on the entire data set (`entire`,) then on each session individually (`session1` and `session2`).
 
-```{r}
+```{r, echo = FALSE}
 # Tree comparison with default complexity and number of example to divide 
 # a leaf
 comparison.trees <- data.frame(
@@ -791,7 +791,7 @@ All models allow a reliable prediction because they are more precise than the du
 
 We are going to compare the models by estimate first.
 
-```{r}
+```{r, echo = FALSE}
 comparison.trees %>%
   filter(model != "dummy") %>%
   ggplot(aes(x = estimate, y = accuracy)) +
@@ -818,7 +818,7 @@ Using the `estimate.2` improve the accuracy of the model.
 
 We are going to compare the accuracy of the model with the entire data set vs. with separate data set for each session.
 
-```{r}
+```{r, echo = FALSE}
 comparison.trees %>%
   filter(estimate == "estimate1") %>%
   ggplot(aes(x = dataset, y = accuracy)) +
@@ -850,7 +850,7 @@ The complexity controls the number of splits, or branches, in the tree.
 
 Let's see an example.
 
-```{r tree_comparison, warning=FALSE}
+```{r tree_comparison, warning=FALSE, echo = FALSE}
 # To increase the complexity, we reduce the cp
 tree.low.complexity    <- rpart(estimate.1, sessions, cp = 0.1)
 tree.medium.complexity <- rpart(estimate.1, sessions, cp = 0.01)
@@ -871,7 +871,7 @@ Let's determine the optimal complexity parameter to predict our data sets. We wi
 
 -   Number of examples : lies in [10, 20, ... 100]
 
-```{r}
+```{r, echo = FALSE}
 # Make a data frame with the models
 complexity.parameters <- c(0, 0.0001, 0.001, 0.01)
 numexample.parameters <- seq(10, 100, by = 10)
@@ -998,7 +998,7 @@ Now, let's see what variables are the most useful to predict the MV with our dat
 
 First for session 1
 
-```{r}
+```{r, echo = FALSE}
 # Make tree on the whole session 1 data set 
 tree.session1 <- rpart(formula = estimate.2, data = session.1, 
                        cp = 0.001, minsplit = 20)
@@ -1011,7 +1011,7 @@ We will now prune the tree with the smallest relative SSE xerror to balance pred
 
 The minimum error seem to be with cp = 0.001533046. However, the maximum CP under the dashed lineis at 4 splits. We will use this to prune the tree and then interpret it.
 
-```{r}
+```{r, echo = FALSE}
 # Find the new cp parameter value
 cp.tree.session1 = tree.session1$cptable[tree.session1$cptable[,2] == 12, "CP"]
 
