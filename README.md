@@ -32,3 +32,5 @@ The folder has the following structure:
 - A LE_GUENNEC.MARTIN.Rmd file containing the code executed to analyze the data with the models. The pdf and html files with the same name are created from the code, enabling you to obtain the results without having to run the code. 
 - A R_MVCprediction.Rproj file, used to launch the Rmd script.
 - A apa.csl and references.bib file, useful for creating the bibliography in the Rmd file
+
+All scripts are written according to the following guidelines: https://web.stanford.edu/class/cs109l/unrestricted/resources/google-style.html

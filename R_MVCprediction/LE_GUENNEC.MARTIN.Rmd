@@ -3,14 +3,6 @@ title: "R Project"
 author: "Martin Le Guennec"
 date: "2023-05-11"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: 3
-    number_sections: yes
-    highlight: tango
-  word_document:
-    toc: yes
-    toc_depth: '3'
   html_document:
     self_contained: yes
     code_folding: hide
@@ -18,6 +10,14 @@ output:
     toc_depth: 3
     number_sections: yes
     theme: united
+    highlight: tango
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
     highlight: tango
 link-citations: yes
 csl: apa.csl
@@ -45,8 +45,6 @@ First we load the libraries used in this code and we create a function named `Te
 Then, you will find a part that explains the context and the objective of this code.
 
 Finally, the major part of the code consists of creating models and comparing them
-
-## Library
 
 ```{r install_libraries, message = FALSE, warning = FALSE, include=FALSE}
 # If some of these libraries are already installed and you don't want to install
@@ -78,8 +76,6 @@ library(rpart)         # Make decision trees
 library(rpart.plot)    # Plot them
 library(randomForest)  # Make random forests
 ```
-
-## Functions
 
 ```{r functions, include = FALSE}
 TestModel <- function(model, data, formula, number.itteration, 
@@ -218,8 +214,6 @@ SortPvalues <- function(model, data, pvalue){
 }
 
 ```
-
-## Load data
 
 ```{r, include = FALSE}
 ##################### I. Create paths useful for the code #####################
@@ -390,7 +384,7 @@ We set a number of 100 iteration that will be common to all models. This number 
 The higher this number, the higher the prediction accuracy but there is a risk of over fitting the data (*i.e.* the model performs exceptionally well on the training data but fails to generalize well to unseen or new data) and increases the calculation time. Inversely, a low number of iteration per model will certainly reduce the accuracy of its prediction.
 
 ```{r}
-kNumberRun <- 1
+kNumberRun <- 100
 ```
 
 The performance of a model is assessed by the root mean square error, calculated as ; $$RMSE = \sqrt{\frac{1}{n} \sum^n (y_i - \hat{y}_i)^2}$$
@@ -415,7 +409,7 @@ We will compare a model with the estimate model 1 (`estimate1`), and a model wit
 
 In addition, we are going to compare the performances of each linear model on the entire data set (`entire`,) then on each session individually (`session1` and `session2`).
 
-```{r, warning = FALSE, echo = FALSE}
+```{r, warning = FALSE}
 # Create data frame with the different linear models
 comparison.modlin <- data.frame(
   dummy = TestModel(
@@ -490,7 +484,7 @@ All models allow a reliable prediction because they are more precise than the du
 
 We are going to compare the models by estimate first.
 
-```{r, echo = FALSE}
+```{r}
 comparison.modlin %>%
   filter(model != "dummy") %>%
   ggplot(aes(x = estimate, y = accuracy)) +
@@ -517,7 +511,7 @@ Using the `estimate.2` improve the accuracy of the model.
 
 We are going to compare the accuracy of the model with the entire data set vs. with separate data set for each session.
 
-```{r, echo = FALSE}
+```{r}
 comparison.modlin %>%
   filter(estimate == 'estimate2') %>%
   ggplot(aes(x = dataset, y = accuracy)) +
@@ -541,6 +535,8 @@ Separating the data set by sessions seem to improve the accuracy of the model.
 
 ## Interpretation
 
+### Session 0,8 m/s
+
 Now that we have identified the best parameters for our regression model, we can fit it on the whole data set and analyse the results. We will proceed by session.
 
 ```{r}
@@ -550,9 +546,11 @@ lm.session1 <- lm(estimate.2, data = session.1)
 summary(lm.session1)
 ```
 
-In our model, at least one of the predictor variables is significantly related to the MV, *F*(41, 288) = 76.75, *p* \< 0.0001.
+In our model, at least one of the predictor variables is significantly related to the MV, *F*(32, 454) = 48.32, *p* \< 0.0001.
 
-**The section that follows was not made for the memory**
+This model explains 77.3 % of the variance (75.7 % after applying a correction).
+
+**The section that follows was not made for the memory. It is however an area to improve the prediction of the model**
 
 As we can see however, many coefficients aren't significant. Therefore, we can remove them from the model.
 
@@ -565,16 +563,26 @@ estimate.updated<- formula(lm.session1)
 summary(lm.session1.updated)
 ```
 
-This way our model is simpler and we don't lose much prediction power despite having less predictors. We have a adjusted R2 at 0.75 instead of 0.76 with all the values. Therefore, we gain in simplicity and lose only 1% of variance explained.
+This way our model is simpler and we don't lose much prediction power despite having less predictors. We have a adjusted R2 at 0.754 (after adjustment) instead of 0.757 with all the values. Therefore, we gain in simplicity and not even 1% of the variance explanation.
+
+\newpage
+
+### Session 0,5 m/s
 
 Now, let's do the same for the session at 0,5 m/s.
 
-```{r, echo = FALSE}
+```{r}
 # Fit a model over the whole data set
 lm.session2 <- lm(estimate.2, data = session.2)
 # Display the model
 summary(lm.session2)
+```
 
+In our model, at least one of the predictor variables is significantly related to the MV, *F*(32, 99) = 19,6, *p* \< 0.0001.
+
+This model explains 86.4 % of the variance (82.0 % after applying a correction).
+
+```{r}
 # Clear the model
 lm.session2.updated <- SortPvalues(lm.session2, session.2, 0.05)
 # Extract his new formula 
@@ -583,9 +591,9 @@ estimate.updated<- formula(lm.session2.updated)
 summary(lm.session2.updated)
 ```
 
-This time we lost a lot of variance explanation by suppressing the values because we went from a R2 at 0.82 to a R2 at 0.65. Therefore, we will do the sorting in two steps : before we suppress all the pvalues inferior to 0.10, them we will make a final sorting with the pvalues \< 0.05.
+This time we lost a lot of variance explanation by suppressing the values because we went from a R2 at 0.820 (after correction) to a R2 at 0.654. Therefore, we will do the sorting in two steps : before we suppress all the pvalues inferior to 0.10, them we will make a final sorting with the pvalues \< 0.05.
 
-```{r, echo = FALSE}
+```{r}
 # First sort the values with p < 0.1
 lm.session2.updated.2steps <- SortPvalues(lm.session2, session.2, 0.1)
 # Then sort the values with p < 0.05
@@ -595,19 +603,19 @@ lm.session2.updated.2steps <- SortPvalues(lm.session2.updated.2steps,
 summary(lm.session2.updated.2steps)
 ```
 
-Thanks to this one more step, we managed to get back to a R2 of 0.81.
+Thanks to this one more step, we managed to get back to a R2 of 0.811 and a simpler model.
+
+\newpage
 
 ## Conclusion
 
 Using the `estimate.2` and splitting the data set by session improves the accuracy of the model's prediction.
 
-<center>**However**</center>
+We have the choice, once we have fitted the model on the whole data set, to keep the model as it is or to clean it. To do so, we can keep only the variables that explain a significant part of the variance. To do that, we can keep directly the variables whose p value is \< 0.05, or do that in several steps.
 
-Using a linear model may not be the best choice due to the presence of multicollinearity, as indicated by the warning message: "Warning: prediction from a rank-deficient fit may be misleading." This warning suggests that there is a high degree of collinearity among the independent variables in your model.
+I think that one way of improving the model is to introduce some interactions between variables. A analysis of the synergies would be necessary before to determine which interactions we should include (for example like @smale2016 ).
 
-Collinearity creates a problem in estimating the coefficients of the model, making them unstable and susceptible to small changes in the data. Consequently, the predictions from such a model can be unreliable and potentially misleading.
-
-Therefore, we are going to try other models, if they are as precise or more precise we will use them instead of the linear model.
+Introducing more variables would also be great to have a chance of having one truly linked with the MV. Having the NIRS data would greatly improve their prediction first, then EEG data two. We can also extract more indicators from the EMG data.
 
 \newpage
 
@@ -615,7 +623,9 @@ Therefore, we are going to try other models, if they are as precise or more prec
 
 First, we need to build a linear mixed model by taking into account set and ID as random effects. We make the assumption that intercept and slope can be modified by the subject who performs the squat, and the number of sets performed before.
 
-```{r, echo = FALSE}
+Therefore, we will use the following formula : $$MV \sim EMG_{variables} + (1 \rvert ID/set)$$
+
+```{r}
 estimate.lmer <- as.formula(
   MV ~ 
     IMNF_VaMe + IMNF_ReFe + IMNF_VaLa + IMNF_GlMa + IMNF_ExLo + 
@@ -629,25 +639,27 @@ estimate.lmer <- as.formula(
   )
 ```
 
-Now, let's fit it on the session 1
+## Session 0,8 m/s
 
-```{r, echo = FALSE}
+```{r}
 mod.lmer.session1 <- lmer(formula = estimate.lmer, data = session.1) 
 summary(mod.lmer.session1)
 ```
 
-And for the session 2
+The model's total explanatory power is substantial (condition R2 = 0.85) and the part related to the fixed effects alone (marginal R2) is of 0.44.
 
-```{r, echo = FALSE}
+```{r}
 mod.lmer.session2 <- lmer(formula = estimate.lmer, data = session.2) 
 summary(mod.lmer.session2)
 ```
+
+The model's total explanatory power is substantial (condition R2 = 0.96) and the part related to the fixed effects alone (marginal R2) is of 0.43.
 
 # Compare the two linear model
 
 Now that we have fitted the linear models (multiple regression and linear mixed models), we are going to visualize the coefficients. This way, it will be easier to interpret.
 
-```{r, echo = FALSE}
+```{r}
 graph.coeff <- data.frame(as.data.frame(report(lm.session1)))[2:26,c(1,2,4,5,8)]
 graph.coeff$model <- "RLM"
 graph.coeff$session <- "Session 0,8 m/s"
@@ -681,7 +693,7 @@ graph.coeff$Variable <- factor(graph.coeff$Variable,
                                levels = c("IMNF", "aucRMS", "meanRMS", 
                                           "maxRMS", "t2maxRMS"))
 
-graph.coeff %>% 
+p <- graph.coeff %>% 
   ggplot(aes(x = Muscle, y = Coefficient, 
              shape = signif, size = signif, color = model, linewidth = signif)
          ) +
@@ -704,9 +716,14 @@ graph.coeff %>%
     legend.key.size = unit(20, "pt")
   ) +
   facet_wrap(Variable ~ session, ncol = 2, scales = "free")  
+
+ggsave("RES/linearModels_coefficients.png", p,
+       width = 3000, height = 4500, units = "px")
 ```
 
-This graph is pretty big, I recommand visualizing it with 1000 width pts and 1500 height pts.
+This graph is pretty big, and can't be seen properly in this pdf. I refer you to the figure `linearModels_coefficients` in the `RES` repository to see it.
+
+\newpage
 
 # Regression trees
 
@@ -716,7 +733,7 @@ Regression tree partitions recursively the input data into subsets based on the 
 
 First, we will compare the accuracy of the tree's prediction with the estimate model 1 (`estimate1`) vs. with the estimate model 2 (`estimate2`). Then, we are going to compare the performances of each linear model on the entire data set (`entire`,) then on each session individually (`session1` and `session2`).
 
-```{r, echo = FALSE}
+```{r}
 # Tree comparison with default complexity and number of example to divide 
 # a leaf
 comparison.trees <- data.frame(
@@ -791,7 +808,7 @@ All models allow a reliable prediction because they are more precise than the du
 
 We are going to compare the models by estimate first.
 
-```{r, echo = FALSE}
+```{r}
 comparison.trees %>%
   filter(model != "dummy") %>%
   ggplot(aes(x = estimate, y = accuracy)) +
@@ -818,7 +835,7 @@ Using the `estimate.2` improve the accuracy of the model.
 
 We are going to compare the accuracy of the model with the entire data set vs. with separate data set for each session.
 
-```{r, echo = FALSE}
+```{r}
 comparison.trees %>%
   filter(estimate == "estimate1") %>%
   ggplot(aes(x = dataset, y = accuracy)) +
@@ -850,7 +867,7 @@ The complexity controls the number of splits, or branches, in the tree.
 
 Let's see an example.
 
-```{r tree_comparison, warning=FALSE, echo = FALSE}
+```{r tree_comparison, warning=FALSE}
 # To increase the complexity, we reduce the cp
 tree.low.complexity    <- rpart(estimate.1, sessions, cp = 0.1)
 tree.medium.complexity <- rpart(estimate.1, sessions, cp = 0.01)
@@ -871,7 +888,7 @@ Let's determine the optimal complexity parameter to predict our data sets. We wi
 
 -   Number of examples : lies in [10, 20, ... 100]
 
-```{r, echo = FALSE}
+```{r}
 # Make a data frame with the models
 complexity.parameters <- c(0, 0.0001, 0.001, 0.01)
 numexample.parameters <- seq(10, 100, by = 10)
@@ -998,7 +1015,7 @@ Now, let's see what variables are the most useful to predict the MV with our dat
 
 First for session 1
 
-```{r, echo = FALSE}
+```{r}
 # Make tree on the whole session 1 data set 
 tree.session1 <- rpart(formula = estimate.2, data = session.1, 
                        cp = 0.001, minsplit = 20)
@@ -1011,7 +1028,7 @@ We will now prune the tree with the smallest relative SSE xerror to balance pred
 
 The minimum error seem to be with cp = 0.001533046. However, the maximum CP under the dashed lineis at 4 splits. We will use this to prune the tree and then interpret it.
 
-```{r, echo = FALSE}
+```{r}
 # Find the new cp parameter value
 cp.tree.session1 = tree.session1$cptable[tree.session1$cptable[,2] == 12, "CP"]
 
@@ -1464,343 +1481,5 @@ plot_grid(nrow = 2, ncol = 2,
 The variable importance order is not the same compared to tree models.
 
 \newpage
-
-# Compare all the models
-
-Now that we've established the best parameters for each model, let's compare the performance of each of them.
-
-```{r, warning=FALSE}
-# kNumberRun <- 1000
-# results.models <- data.frame(
-#   modlin.session1 = TestModel(
-#     model = "mod.lin", 
-#     data = session.1, 
-#     formula = estimate.2, 
-#     number.itteration = kNumberRun
-#     ),
-#   lmmixt.session1 = TestModel(
-#     model = "lm.mixt",
-#     data = session.1, 
-#     formula = estimate.lmer, 
-#     number.itteration = kNumberRun
-#     ),
-#   tree.session1 = TestModel(
-#     model = "tree",
-#     data = session.1,
-#     formula = estimate.2,
-#     number.itteration = kNumberRun,
-#     cp.tree = 0.001
-#     ),
-#   forest.session1 = TestModel(
-#     model = "forest",
-#     data = session.1,
-#     formula = estimate.2,
-#     number.itteration = kNumberRun,
-#     ntree.forest = 300
-#     ),
-#   modlin.session2 = TestModel(
-#     model = "mod.lin",
-#     data = session.2,
-#     formula = estimate.2,
-#     number.itteration = kNumberRun
-#     ),
-#   lmmixt.session2 = TestModel(
-#     model = "lm.mixt",
-#     data = session.2, 
-#     formula = estimate.lmer, 
-#     number.itteration = kNumberRun
-#     ),
-#   tree.session2 = TestModel(
-#     model = "tree",
-#     data = session.2,
-#     formula = estimate.2,
-#     number.itteration = kNumberRun,
-#     cp.tree = 0.001
-#   ),
-#   forest.session2 = TestModel(
-#     model = "forest",
-#     data = session.2,
-#     formula = estimate.2,
-#     number.itteration = kNumberRun,
-#     ntree.forest = 300
-#   )
-# ) 
-# 
-# 
-#   
-#   estimate.lmer <- as.formula(
-#   MV ~ 
-#     IMNF_VaMe + IMNF_ReFe + IMNF_VaLa + IMNF_GlMa + IMNF_ExLo + 
-#     meanRMS_VaMe + meanRMS_ReFe + meanRMS_VaLa + meanRMS_GlMa +
-#     meanRMS_ExLo + 
-#     aucRMS_VaMe + aucRMS_ReFe + aucRMS_VaLa + aucRMS_GlMa + aucRMS_ExLo +
-#     maxRMS_VaMe + maxRMS_ReFe + maxRMS_VaLa + maxRMS_GlMa + maxRMS_ExLo +
-#     t2maxRMS_VaMe + t2maxRMS_ReFe + t2maxRMS_VaLa + t2maxRMS_GlMa +
-#     t2maxRMS_ExLo  +
-#     (1 | ID) + (1|set)
-#   )
-#   
-#   
-# 
-# results.models <- results.models %>%
-#   pivot_longer(cols = everything(), 
-#                names_to = "model", values_to = "accuracy") %>%
-#   separate(model, into = c("model", "session"), sep="\\.", remove = F)
-# 
-# results.models$model <- factor(
-#   results.models$model, 
-#   levels = c("modlin", "lmmixt", "tree", "forest"),
-#   labels = c("Régression multiple", "Modèle linéaire mixte", 
-#              "Arbre de régression", "Forêt aléatoire"))
-
-```
-
-### Statistical comparisons
-
-We want to compare our models to see if their predicition is statistically different from one. We do that thanks to the Kruskall-Wallis test
-
-```{r}
-# res.aov <- results.models %>%
-#   group_by(session) %>%
-#   kruskal_test(accuracy ~ model) %>%
-#   add_significance()
-# res.aov
-# 
-# results.models %>%
-#   group_by(session) %>%
-#   kruskal_effsize(accuracy ~ model, ci = TRUE)
-```
-
-For both session, there are differences between the models' accuracy. We are going to run pairwise comparisons to identify which model is more accurate.
-
-```{r}
-# pwc <- results.models %>%
-#   group_by(session) %>%
-#   wilcox_test(accuracy ~ model, p.adjust.method = "bonferroni", 
-#               detailed = TRUE) %>%
-#   add_significance()
-# 
-# pwc
-# 
-# results.models %>%
-#   group_by(session) %>%
-#   wilcox_effsize(accuracy ~ model, p.adjust.method = "bonferroni", ci = TRUE)
-# 
-# 
-# results.models %>%
-#   group_by(session, model) %>%
-#   get_summary_stats(accuracy, type = "median")
-```
-
-Now we are going to viauslize this
-
-```{r}
-# # Prepare the values for the statistical tests
-# pwc <- pwc %>%
-#   filter(p.adj < 0.05) %>%  # We only want the significant tests
-#   add_y_position()
-# # pwc$y.position <- c(0.07, 0.072, 0.07, 0.072, 0.074)
-# 
-# # Change labels for the facets
-# session.labs <- as_labeller(c(
-#   session1 = 'Session 0,8 m/s', 
-#   session2 = "Session 0,5 m/s"
-#   ))
-# 
-# # Plot the results
-# results.models %>% 
-#   ggplot(aes(x = model, y = accuracy, color = model)) + 
-#   geom_boxplot() +     # Add boxplots
-#   geom_jitter(         # Add the points in front of boxplots
-#     size = .2,
-#     alpha = .4
-#   ) +      
-#   facet_grid(          # One plot by session
-#     cols = vars(session),
-#     labeller = labeller(session = session.labs)
-#     ) +
-#   geom_ysidedensity(   # Add distribution at the side of the graphs
-#     aes(fill = model), 
-#     color = NA, alpha = 0.4
-#     ) +
-#   stat_pvalue_manual(  # Add significance bars
-#     pwc, tip.length = .01
-#     ) +
-#   xlab("") + ylab("RMSE") +
-#   theme(
-#     legend.position = "none",
-#     axis.text.y = element_text(size = 12),
-#     axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
-#     strip.text = element_text(size = 20),
-#     ggside.panel.grid = element_blank(),
-#     ggside.panel.background = element_blank()
-#   ) +
-#   labs(
-#     caption = get_pwc_label(pwc)
-#     )
-```
-
-### Stats about the models
-
-```{r}
-# library(report)
-# 
-# res.aov <- results.models %>%
-#   group_by(session) %>%
-#   kruskal_test(accuracy ~ model)
-#   
-# pwc <- results.models %>%
-#   group_by(session) %>%
-#   wilcox_test(accuracy ~ model, 
-#               p.adjust.method = "bonferroni", conf.level = .95,
-#               paired = FALSE) 
-# 
-# temp <- results.models %>%
-#   filter(model == "Régression multiple" | model == "Arbre de régression") %>%
-#   ungroup
-# 
-# wilcox.test(temp$accuracy ~ temp$model, conf.int = TRUE,
-#             paired = FALSE, correct = TRUE)
-# 
-# wilcox.test(temp$accuracy ~ temp$model, conf.int = TRUE,
-#             paired = FALSE, correct = TRUE) %>%
-#   report
-# 
-# kruskal.test(results.models$accuracy ~ results.models$model) %>% 
-#   unlist(.) %>%
-#   report()
-# 
-# results.models %>%
-#   group_by(session, model) %>%
-#   get_summary_stats(accuracy, type = "median_iqr")
-# 
-# 
-# kruskal.test(accuracy ~ model, data = results.models)
-#   # report()
-# 
-# report(pwc)
-# pwc
-```
-
-# Compare the models to the regressions
-
-```{r}
-# # Sélectionner les colonnes de mesure
-# measure_cols <- colnames(session.1)[6:ncol(session.1)]
-# 
-# # Créer un dataframe vide pour stocker les résultats
-# summary_table <- data.frame(Sujet = character(),
-#                             Measure = character(),
-#                             P_Value = character(),
-#                             R2 = numeric(),
-#                             stringsAsFactors = FALSE)
-# 
-# # Calculer les corrélations et ajouter les résultats au tableau récapitulatif
-# for (measure in measure_cols) {
-#   
-#   correlation <- cor.test(session.1$MV, session.1[[measure]])
-#   
-#   pvalue <- ifelse(correlation$p.value < 0.001, "<0.001 *",
-#                    ifelse(correlation$p.value < 0.05, 
-#                           paste0(round(correlation$p.value, 3), " *"),
-#                           paste0(round(correlation$p.value, 3))
-#                           )
-#                    )
-#   
-#   result_row <- data.frame(Sujet = "All data",
-#                            Measure = measure,
-#                            P_Value = pvalue,
-#                            R2 = round(correlation$estimate^2, 3))
-#   summary_table <- bind_rows(summary_table, result_row)
-#   }
-# 
-# 
-# # Calculer les corrélations par sujet et ajouter les résultats au tableau récapitulatif
-# for (measure in measure_cols) {
-#   for (sujet in unique(session.1$ID)) {
-#     
-#     data_subject <- session.1 %>%
-#       filter(ID == sujet) %>%
-#       ungroup()
-#     
-#     correlation_by_subject <- cor.test(data_subject$MV,
-#                                        data_subject[[measure]])
-# 
-#     pvalue <- ifelse(correlation_by_subject$p.value < 0.001, "<0.001 *",
-#                    ifelse(correlation_by_subject$p.value < 0.05, 
-#                           paste0(round(correlation_by_subject$p.value, 3), " *"),
-#                           paste0(round(correlation_by_subject$p.value, 3))
-#                           )
-#                    )
-#     
-#     
-#     
-#     result_row <- data.frame(Sujet = sujet,
-#                              Measure = measure,
-#                              P_Value = pvalue,
-#                              R2 = round(correlation_by_subject$estimate^2, 3))
-#     summary_table <- bind_rows(summary_table, result_row)
-#   }
-# }
-# 
-# # Afficher le tableau récapitulatif par sujet
-# corr <- summary_table %>%
-#   pivot_wider(names_from = Sujet, values_from = c(P_Value, R2))
-# 
-# corr <- corr[, c(1, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15, 8, 16, 9, 17)]
-# 
-# 
-# session.1 %>%
-#   gather(-c(1:5), key = "var", value = 'value') %>%
-#   ggplot(aes(x = value, y = MV)) +
-#            facet_grid(~ var, scales = "free") +
-#            geom_point()
-# 
-# 
-# test <-  lm(estimate.2, data = as.tibble(session.1))
-# report(test)
-# 
-# summary(test)
-# 
-# 
-# lowCI <- confint(test)[[2]]
-# highCI <- confint(test)[[4]]
-# 
-# summary(test)$coefficients[[2]]
-# summary(test)$adj.r.squared
-# summary(test)$coefficients[[8]]
-# 
-# for (measure in measure_cols){
-#   lm.session1 <- lm(MV ~ measure, data = as.tibble(session.1))
-#   
-# }
-# colum
-```
-
-```{r}
-# # test <-  lm(estimate.2, data = as.tibble(session.1))
-# # summary(test)
-# # 
-# # prediction <- predict(test, session.1)
-# # sqrt(mean((prediction - session.1$MV)^2))
-# 
-# 
-# session.1 %>%
-#   get_summary_stats(IMNF_VaLa, maxRMS_VaLa, type = "full")
-# 
-# 
-# prediction <- predict(tree.session1, session.1)
-# SSR <- sum((prediction - mean(session.1$MV))^2)
-# SST <- sum((session.1$MV - mean(session.1$MV))^2)
-# SSR/SST
-# 
-# 
-# data.frame(as.data.frame(report(lm.session2)))
-# 
-# summary(lm.session2)
-# rsq.rpart(tree.session2)
-# tmp <- printcp(tree.session2)
-# 1-tmp[,c(2,3,4)]
-```
 
 # References
